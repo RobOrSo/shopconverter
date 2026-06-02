@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ShopConverter">
+<meta name="theme-color" content="#0f1923">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>ShopConverter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f1923;
+  --surface:#182230;
+  --surface2:#1e2c3a;
+  --accent:#00e5a0;
+  --accent2:#ff6b35;
+  --text:#e8f0f7;
+  --muted:#6b8299;
+  --border:#243447;
+  --danger:#ff4757;
+  --warn:#ffa502;
+  --radius:14px;
+  --radius-sm:8px;
+  --font:'DM Sans',sans-serif;
+  --mono:'Space Mono',monospace;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font)}
+body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative}
+
+/* NAV */
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border:none;color:var(--muted);padding:12px 0 10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-family:var(--font);cursor:pointer;transition:color .2s;letter-spacing:.03em}
+nav button.active{color:var(--accent)}
+nav button svg{width:22px;height:22px;stroke-width:1.8}
+
+/* PAGES */
+.pages{flex:1;overflow:hidden;position:relative;padding-bottom:60px;padding-top:env(safe-area-inset-top)}
+.page{position:absolute;inset:0;padding-bottom:60px;overflow-y:auto;display:none;padding-top:env(safe-area-inset-top)}
+.page.active{display:block}
+.page::-webkit-scrollbar{display:none}
+
+/* HEADER */
+.page-header{padding:24px 20px 16px;display:flex;align-items:center;justify-content:space-between}
+.page-title{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.page-title span{color:var(--accent)}
+
+/* CALC */
+.calc-card{margin:0 16px 16px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:20px}
+.tc-row{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.tc-badge{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.tc-val{color:var(--accent);font-weight:700}
+.btn-sm{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-size:12px;font-family:var(--font);padding:6px 12px;cursor:pointer;transition:.2s}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+
+.input-group{position:relative;margin-bottom:12px}
+.input-group label{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:6px}
+.input-group input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;font-family:var(--mono);padding:14px 16px;outline:none;transition:.2s}
+.input-group input:focus{border-color:var(--accent)}
+.input-group .prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-family:var(--mono);font-size:16px;pointer-events:none;margin-top:10px}
+.input-group input.has-prefix{padding-left:30px}
+
+.result-box{background:linear-gradient(135deg,rgba(0,229,160,.08),rgba(0,229,160,.03));border:1px solid rgba(0,229,160,.25);border-radius:var(--radius);padding:20px;text-align:center;margin-top:4px}
+.result-label{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.result-amount{font-size:40px;font-weight:600;color:var(--accent);font-family:var(--mono);letter-spacing:-.02em}
+.result-sub{font-size:12px;color:var(--muted);margin-top:6px}
+
+.override-row{display:flex;align-items:center;gap:8px;margin-top:12px}
+.override-row label{font-size:12px;color:var(--muted);white-space:nowrap}
+.override-row input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:var(--mono);padding:8px 12px;outline:none}
+.override-row input:focus{border-color:var(--warn)}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.chip.saved{background:rgba(0,229,160,.12);color:var(--accent)}
+.chip.override{background:rgba(255,165,2,.12);color:var(--warn)}
+
+/* LISTS */
+.lists-toolbar{padding:0 16px 12px;display:flex;gap:8px}
+.tab-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:7px 16px;font-size:13px;color:var(--muted);cursor:pointer;transition:.2s;border:none}
+.tab-pill.active{background:rgba(0,229,160,.15);color:var(--accent)}
+
+.list-card{margin:0 16px 12px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
+.list-card-header{padding:16px 16px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.list-card-title{font-size:15px;font-weight:500}
+.list-card-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.list-card-right{display:flex;align-items:center;gap:8px}
+.list-total{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:700}
+.chevron{transition:transform .25s;color:var(--muted)}
+.chevron.open{transform:rotate(180deg)}
+
+.list-body{display:none;border-top:1px solid var(--border)}
+.list-body.open{display:block}
+.product-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(36,52,71,.5)}
+.product-row:last-child{border-bottom:none}
+.prod-name{flex:1;font-size:13px}
+.prod-qty{font-size:12px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+.prod-price{font-size:13px;font-family:var(--mono);color:var(--text);white-space:nowrap}
+.prod-mxn{font-size:11px;color:var(--accent);font-family:var(--mono)}
+.prod-actions{display:flex;gap:4px}
+.icon-btn{background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--muted);transition:.2s;display:flex}
+.icon-btn:hover{color:var(--text);background:var(--surface2)}
+.icon-btn.del:hover{color:var(--danger)}
+
+.add-product-row{padding:12px 16px;display:flex;gap-8px;align-items:center}
+.inline-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:var(--font);padding:8px 10px;outline:none;width:100%}
+.inline-input::placeholder{color:var(--muted)}
+.inline-input:focus{border-color:var(--accent)}
+.add-product-form{padding:12px 16px;display:grid;grid-template-columns:1fr auto auto;gap:8px;border-top:1px solid var(--border)}
+
+.fab{position:fixed;right:20px;bottom:calc(72px + env(safe-area-inset-bottom));background:var(--accent);color:#0f1923;border:none;border-radius:50%;width:52px;height:52px;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,229,160,.3);transition:.2s;z-index:50;font-family:var(--mono);font-weight:700}
+.fab:hover{transform:scale(1.08)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:.25s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:430px;margin:0 auto;padding:24px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(20px);transition:.25s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-title{font-size:17px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.modal-field{margin-bottom:14px}
+.modal-field label{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:6px}
+.modal-field input,.modal-field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;font-family:var(--font);padding:12px 14px;outline:none}
+.modal-field input:focus,.modal-field select:focus{border-color:var(--accent)}
+.modal-field select option{background:var(--surface2)}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+.btn-primary{flex:1;background:var(--accent);color:#0f1923;border:none;border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;transition:.2s}
+.btn-primary:hover{opacity:.9}
+.btn-secondary{flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:15px;font-family:var(--font);cursor:pointer;transition:.2s}
+.btn-secondary:hover{border-color:var(--muted)}
+
+/* SETTINGS */
+.settings-section{margin:0 16px 20px}
+.section-label{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;padding:0 4px}
+.settings-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.settings-row{display:flex;align-items:center;padding:15px 16px;border-bottom:1px solid rgba(36,52,71,.5);gap:12px}
+.settings-row:last-child{border-bottom:none}
+.settings-row-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.settings-row-icon.green{background:rgba(0,229,160,.12)}
+.settings-row-icon.orange{background:rgba(255,107,53,.12)}
+.settings-row-label{flex:1}
+.settings-row-label p{font-size:14px;font-weight:500}
+.settings-row-label span{font-size:12px;color:var(--muted)}
+.settings-row input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--mono);font-size:16px;font-weight:700;padding:8px 12px;width:100px;outline:none;text-align:right}
+.settings-row input:focus{border-color:var(--accent)}
+.save-btn{background:rgba(0,229,160,.15);color:var(--accent);border:1px solid rgba(0,229,160,.3);border-radius:var(--radius-sm);padding:8px 16px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;transition:.2s}
+.save-btn:hover{background:rgba(0,229,160,.25)}
+
+.store-chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;margin:4px;cursor:pointer;transition:.2s}
+.store-chip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0;display:flex}
+.store-chip button:hover{color:var(--danger)}
+.stores-wrap{padding:12px 16px}
+.add-store-row{display:flex;gap:8px;margin-top:8px;padding:0 16px 16px}
+.add-store-row input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:var(--font);padding:9px 12px;outline:none}
+.add-store-row input:focus{border-color:var(--accent)}
+.add-store-row button{background:var(--accent);color:#0f1923;border:none;border-radius:var(--radius-sm);padding:9px 14px;font-size:18px;cursor:pointer;font-weight:700;line-height:1}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty svg{width:48px;height:48px;margin-bottom:12px;opacity:.4}
+.empty p{font-size:14px}
+
+/* TOAST */
+.toast{position:fixed;top:calc(20px + env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 18px;font-size:13px;z-index:300;transition:.3s;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:rgba(0,229,160,.4);color:var(--accent)}
+.toast.error{border-color:rgba(255,71,87,.4);color:var(--danger)}
+</style>
+</head>
+<body>
+
+<div class="pages">
+  <!-- CALCULADORA -->
+  <div class="page active" id="page-calc">
+    <div class="page-header">
+      <h1 class="page-title">Shop<span>Converter</span></h1>
+    </div>
+
+    <div class="calc-card">
+      <div class="tc-row">
+        <div class="tc-badge">TC: $<span class="tc-val" id="tc-display">18.50</span></div>
+        <span id="tc-chip" class="chip saved">Guardado</span>
+      </div>
+      <div class="override-row">
+        <label>Override TC:</label>
+        <input type="number" id="tc-override" placeholder="ej. 18.75" step="0.01">
+        <button class="btn-sm" onclick="clearOverride()">Reset</button>
+      </div>
+    </div>
+
+    <div class="calc-card">
+      <div class="input-group">
+        <label>Monto en dólares</label>
+        <span class="prefix">$</span>
+        <input class="has-prefix" type="number" id="usd-input" placeholder="0.00" step="0.01" inputmode="decimal" oninput="calcConvert()">
+      </div>
+      <div class="result-box">
+        <div class="result-label">Equivalente en pesos</div>
+        <div class="result-amount" id="mxn-result">$0.00</div>
+        <div class="result-sub" id="calc-sub">0 USD × 18.50 = 0.00 MXN</div>
+      </div>
+    </div>
+
+    <div class="calc-card" style="padding:16px 20px">
+      <div style="font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Conversión rápida</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="quick-grid"></div>
+    </div>
+  </div>
+
+  <!-- LISTAS -->
+  <div class="page" id="page-lists">
+    <div class="page-header">
+      <h1 class="page-title">Mis <span>Listas</span></h1>
+      <button class="btn-sm" onclick="openNewList()">+ Nueva</button>
+    </div>
+    <div class="lists-toolbar">
+      <button class="tab-pill active" id="tab-stores" onclick="switchListTab('stores')">Tiendas</button>
+      <button class="tab-pill" id="tab-free" onclick="switchListTab('free')">Listas libres</button>
+    </div>
+    <div id="lists-container"></div>
+  </div>
+
+  <!-- CONFIGURACIÓN -->
+  <div class="page" id="page-settings">
+    <div class="page-header">
+      <h1 class="page-title">Configu<span>ración</span></h1>
+    </div>
+
+    <div class="settings-section">
+      <div class="section-label">Tipo de cambio guardado</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div class="settings-row-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" width="20" height="20"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="settings-row-label">
+            <p>TC fijo USD/MXN</p>
+            <span>Se usa como base en la calculadora</span>
+          </div>
+          <input type="number" id="tc-setting" step="0.01" placeholder="18.50">
+          <button class="save-btn" onclick="saveTc()">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="section-label">Tiendas</div>
+      <div class="settings-card">
+        <div class="stores-wrap" id="stores-wrap"></div>
+      </div>
+      <div class="add-store-row">
+        <input type="text" id="new-store-input" placeholder="Nombre de tienda...">
+        <button onclick="addStore()">+</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="section-label">Datos</div>
+      <div class="settings-card">
+        <div class="settings-row" style="cursor:pointer" onclick="exportData()">
+          <div class="settings-row-icon orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.8" width="20" height="20"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <div class="settings-row-label"><p>Exportar datos</p><span>Descarga tus listas en JSON</span></div>
+        </div>
+        <div class="settings-row" style="cursor:pointer" onclick="confirmClear()">
+          <div class="settings-row-icon" style="background:rgba(255,71,87,.1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.8" width="20" height="20"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </div>
+          <div class="settings-row-label" style="color:var(--danger)"><p>Borrar todo</p><span style="color:var(--muted)">Elimina listas y productos</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <button class="active" id="nav-calc" onclick="goPage('calc')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="11" y2="12"/><line x1="8" y1="16" x2="11" y2="16"/><line x1="14" y1="12" x2="16" y2="12"/><line x1="14" y1="16" x2="16" y2="16"/></svg>
+    Calculadora
+  </button>
+  <button id="nav-lists" onclick="goPage('lists')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>
+    Listas
+  </button>
+  <button id="nav-settings" onclick="goPage('settings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Ajustes
+  </button>
+</nav>
+
+<!-- MODAL nueva lista / nueva tienda -->
+<div class="modal-overlay" id="modal-list">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-list-title">Nueva lista</span>
+      <button class="icon-btn" onclick="closeModal('modal-list')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-field">
+      <label>Nombre</label>
+      <input type="text" id="ml-name" placeholder="ej. Compras del fin de semana">
+    </div>
+    <div class="modal-field" id="ml-type-field">
+      <label>Tipo</label>
+      <select id="ml-type">
+        <option value="store">Por tienda</option>
+        <option value="free">Lista libre</option>
+      </select>
+    </div>
+    <div class="modal-field" id="ml-store-field">
+      <label>Tienda</label>
+      <select id="ml-store"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-list')">Cancelar</button>
+      <button class="btn-primary" onclick="saveList()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL nuevo producto -->
+<div class="modal-overlay" id="modal-product">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-prod-title">Agregar producto</span>
+      <button class="icon-btn" onclick="closeModal('modal-product')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-field">
+      <label>Nombre del producto</label>
+      <input type="text" id="mp-name" placeholder="ej. Aceite de oliva">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="modal-field">
+        <label>Precio USD</label>
+        <input type="number" id="mp-price" placeholder="0.00" step="0.01" inputmode="decimal">
+      </div>
+      <div class="modal-field">
+        <label>Cantidad</label>
+        <input type="number" id="mp-qty" placeholder="1" min="1" step="1" inputmode="numeric">
+      </div>
+    </div>
+    <div class="result-box" style="margin-top:4px;padding:12px 16px;text-align:left">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--muted)">Subtotal MXN</span>
+        <span style="font-family:var(--mono);font-size:20px;color:var(--accent);font-weight:600" id="mp-subtotal">$0.00</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-product')">Cancelar</button>
+      <button class="btn-primary" onclick="saveProduct()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let state = {
+  tc: 18.50,
+  stores: ['Walmart','Costco','Sam\'s Club','H-E-B','Target'],
+  lists: []
+};
+let editingListId = null;
+let editingProductId = null;
+let activeProductListId = null;
+let listTab = 'stores';
+
+function load(){
+  const s = localStorage.getItem('shopconv');
+  if(s) state = JSON.parse(s);
+  document.getElementById('tc-setting').value = state.tc;
+  renderTcDisplay();
+  renderStores();
+  renderLists();
+  renderQuickGrid();
+}
+function save(){localStorage.setItem('shopconv',JSON.stringify(state));}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+
+// ── NAV ──
+function goPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('nav-'+p).classList.add('active');
+  if(p==='lists') renderLists();
+}
+
+// ── CALCULATOR ──
+function getTc(){
+  const ov = document.getElementById('tc-override').value;
+  return ov && !isNaN(ov) ? parseFloat(ov) : state.tc;
+}
+function renderTcDisplay(){
+  const ov = document.getElementById('tc-override').value;
+  const using = ov && !isNaN(ov) ? parseFloat(ov) : state.tc;
+  document.getElementById('tc-display').textContent = using.toFixed(2);
+  const chip = document.getElementById('tc-chip');
+  chip.textContent = ov ? 'Override' : 'Guardado';
+  chip.className = 'chip ' + (ov ? 'override' : 'saved');
+}
+function calcConvert(){
+  renderTcDisplay();
+  const usd = parseFloat(document.getElementById('usd-input').value)||0;
+  const tc = getTc();
+  const mxn = usd * tc;
+  document.getElementById('mxn-result').textContent = '$'+fmt(mxn);
+  document.getElementById('calc-sub').textContent = `${usd.toFixed(2)} USD × ${tc.toFixed(2)} = ${fmt(mxn)} MXN`;
+}
+function clearOverride(){
+  document.getElementById('tc-override').value='';
+  calcConvert();
+}
+function fmt(n){return n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function renderQuickGrid(){
+  const amounts = [5,10,25,50,100,200,500,1000];
+  const tc = getTc();
+  const g = document.getElementById('quick-grid');
+  g.innerHTML = amounts.map(a=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--muted);font-family:var(--mono)">$${a}</span>
+      <span style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--accent)">$${fmt(a*tc)}</span>
+    </div>`).join('');
+}
+document.getElementById('tc-override').addEventListener('input',()=>{calcConvert();renderQuickGrid();});
+
+// ── SETTINGS ──
+function saveTc(){
+  const v = parseFloat(document.getElementById('tc-setting').value);
+  if(!v||v<=0){toast('Ingresa un tipo de cambio válido','error');return;}
+  state.tc = v;
+  save();
+  renderTcDisplay();
+  renderQuickGrid();
+  toast('Tipo de cambio guardado','success');
+}
+function renderStores(){
+  const w = document.getElementById('stores-wrap');
+  w.innerHTML = state.stores.map((s,i)=>`
+    <span class="store-chip">${s}<button onclick="removeStore(${i})">×</button></span>`).join('');
+}
+function addStore(){
+  const inp = document.getElementById('new-store-input');
+  const v = inp.value.trim();
+  if(!v) return;
+  if(state.stores.includes(v)){toast('Tienda ya existe','error');return;}
+  state.stores.push(v);
+  save();
+  renderStores();
+  inp.value='';
+}
+function removeStore(i){
+  state.stores.splice(i,1);
+  save();
+  renderStores();
+}
+
+// ── LISTS ──
+function switchListTab(t){
+  listTab=t;
+  document.getElementById('tab-stores').className='tab-pill'+(t==='stores'?' active':'');
+  document.getElementById('tab-free').className='tab-pill'+(t==='free'?' active':'');
+  renderLists();
+}
+function renderLists(){
+  const c = document.getElementById('lists-container');
+  const filtered = state.lists.filter(l=>l.type===(listTab==='stores'?'store':'free'));
+  if(!filtered.length){
+    c.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg><p>Sin listas aún.<br>Toca "+ Nueva" para crear una.</p></div>`;
+    return;
+  }
+  c.innerHTML = filtered.map(l=>renderListCard(l)).join('');
+}
+function listTotal(l){
+  const tc = getTc();
+  return l.products.reduce((s,p)=>s+(p.price*p.qty*tc),0);
+}
+function renderListCard(l){
+  const total = listTotal(l);
+  const prods = l.products||[];
+  return `
+  <div class="list-card" id="lc-${l.id}">
+    <div class="list-card-header" onclick="toggleList('${l.id}')">
+      <div>
+        <div class="list-card-title">${l.name}</div>
+        <div class="list-card-meta">${l.type==='store'?'🏪 '+l.store:'📋 Lista libre'} · ${prods.length} producto${prods.length!==1?'s':''}</div>
+      </div>
+      <div class="list-card-right">
+        <span class="list-total">$${fmt(total)}</span>
+        <svg class="chevron" id="chev-${l.id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="list-body" id="lb-${l.id}">
+      ${prods.length?prods.map(p=>renderProductRow(l.id,p)).join(''):`<div style="padding:14px 16px;font-size:13px;color:var(--muted)">Sin productos aún.</div>`}
+      <div style="padding:12px 16px;border-top:1px solid rgba(36,52,71,.5);display:flex;gap:8px">
+        <button class="btn-primary" style="font-size:13px;padding:10px" onclick="openAddProduct('${l.id}')">+ Producto</button>
+        <button class="btn-sm" onclick="editList('${l.id}')">Editar lista</button>
+        <button class="btn-sm" style="color:var(--danger);border-color:rgba(255,71,87,.3)" onclick="deleteList('${l.id}')">Eliminar</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderProductRow(listId, p){
+  const tc = getTc();
+  const sub = p.price*p.qty*tc;
+  return `
+  <div class="product-row" id="pr-${p.id}">
+    <div style="flex:1">
+      <div class="prod-name">${p.name}</div>
+      <div class="prod-mxn">$${fmt(sub)} MXN</div>
+    </div>
+    <div style="text-align:right">
+      <div class="prod-price">$${p.price.toFixed(2)} × ${p.qty}</div>
+      <div class="prod-qty">USD</div>
+    </div>
+    <div class="prod-actions">
+      <button class="icon-btn" onclick="openEditProduct('${listId}','${p.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="icon-btn del" onclick="deleteProduct('${listId}','${p.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>
+  </div>`;
+}
+function toggleList(id){
+  const body = document.getElementById('lb-'+id);
+  const chev = document.getElementById('chev-'+id);
+  const open = body.classList.toggle('open');
+  chev.classList.toggle('open',open);
+}
+
+// ── MODAL LIST ──
+function openNewList(){
+  editingListId = null;
+  document.getElementById('modal-list-title').textContent='Nueva lista';
+  document.getElementById('ml-name').value='';
+  document.getElementById('ml-type').value=listTab==='stores'?'store':'free';
+  populateStoreSelect();
+  toggleStoreField();
+  document.getElementById('ml-type').onchange = toggleStoreField;
+  openModal('modal-list');
+}
+function editList(id){
+  const l = state.lists.find(x=>x.id===id);
+  editingListId = id;
+  document.getElementById('modal-list-title').textContent='Editar lista';
+  document.getElementById('ml-name').value=l.name;
+  document.getElementById('ml-type').value=l.type;
+  populateStoreSelect();
+  document.getElementById('ml-store').value=l.store||'';
+  toggleStoreField();
+  document.getElementById('ml-type').onchange = toggleStoreField;
+  openModal('modal-list');
+}
+function populateStoreSelect(){
+  const sel = document.getElementById('ml-store');
+  sel.innerHTML = state.stores.map(s=>`<option value="${s}">${s}</option>`).join('');
+}
+function toggleStoreField(){
+  const t = document.getElementById('ml-type').value;
+  document.getElementById('ml-store-field').style.display = t==='store'?'block':'none';
+}
+function saveList(){
+  const name = document.getElementById('ml-name').value.trim();
+  if(!name){toast('Ingresa un nombre','error');return;}
+  const type = document.getElementById('ml-type').value;
+  const store = type==='store'?document.getElementById('ml-store').value:'';
+  if(editingListId){
+    const l = state.lists.find(x=>x.id===editingListId);
+    l.name=name; l.type=type; l.store=store;
+  } else {
+    state.lists.push({id:uid(),name,type,store,products:[]});
+  }
+  save();
+  renderLists();
+  closeModal('modal-list');
+  toast(editingListId?'Lista actualizada':'Lista creada','success');
+}
+function deleteList(id){
+  if(!confirm('¿Eliminar esta lista?')) return;
+  state.lists = state.lists.filter(x=>x.id!==id);
+  save();
+  renderLists();
+  toast('Lista eliminada');
+}
+
+// ── MODAL PRODUCT ──
+function openAddProduct(listId){
+  activeProductListId = listId;
+  editingProductId = null;
+  document.getElementById('modal-prod-title').textContent='Agregar producto';
+  document.getElementById('mp-name').value='';
+  document.getElementById('mp-price').value='';
+  document.getElementById('mp-qty').value='1';
+  document.getElementById('mp-subtotal').textContent='$0.00';
+  openModal('modal-product');
+}
+function openEditProduct(listId, prodId){
+  const l = state.lists.find(x=>x.id===listId);
+  const p = l.products.find(x=>x.id===prodId);
+  activeProductListId = listId;
+  editingProductId = prodId;
+  document.getElementById('modal-prod-title').textContent='Editar producto';
+  document.getElementById('mp-name').value=p.name;
+  document.getElementById('mp-price').value=p.price;
+  document.getElementById('mp-qty').value=p.qty;
+  updateProdSubtotal();
+  openModal('modal-product');
+}
+function updateProdSubtotal(){
+  const price = parseFloat(document.getElementById('mp-price').value)||0;
+  const qty = parseInt(document.getElementById('mp-qty').value)||1;
+  const sub = price*qty*getTc();
+  document.getElementById('mp-subtotal').textContent='$'+fmt(sub);
+}
+document.getElementById('mp-price').addEventListener('input',updateProdSubtotal);
+document.getElementById('mp-qty').addEventListener('input',updateProdSubtotal);
+function saveProduct(){
+  const name = document.getElementById('mp-name').value.trim();
+  const price = parseFloat(document.getElementById('mp-price').value);
+  const qty = parseInt(document.getElementById('mp-qty').value)||1;
+  if(!name){toast('Ingresa el nombre','error');return;}
+  if(!price||price<=0){toast('Ingresa un precio válido','error');return;}
+  const l = state.lists.find(x=>x.id===activeProductListId);
+  if(editingProductId){
+    const p = l.products.find(x=>x.id===editingProductId);
+    p.name=name; p.price=price; p.qty=qty;
+  } else {
+    l.products.push({id:uid(),name,price,qty});
+  }
+  save();
+  renderLists();
+  closeModal('modal-product');
+  toast(editingProductId?'Producto actualizado':'Producto agregado','success');
+}
+function deleteProduct(listId,prodId){
+  const l = state.lists.find(x=>x.id===listId);
+  l.products = l.products.filter(x=>x.id!==prodId);
+  save();
+  renderLists();
+  toast('Producto eliminado');
+}
+
+// ── MODAL UTILS ──
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);});
+});
+
+// ── TOAST ──
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+(type||'');
+  void t.offsetWidth;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── EXPORT / CLEAR ──
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='shopconverter-data.json';
+  a.click();
+  toast('Datos exportados','success');
+}
+function confirmClear(){
+  if(confirm('¿Borrar todas las listas y productos?')){
+    state.lists=[];
+    save();
+    renderLists();
+    toast('Datos eliminados');
+  }
+}
+
+load();
+</script>
+</head>
+</body>
+</html>
