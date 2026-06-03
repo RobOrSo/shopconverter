@@ -196,10 +196,11 @@ nav button svg{width:22px;height:22px;stroke-width:1.8}
         <span class="prefix">$</span>
         <input class="has-prefix" type="number" id="usd-input" placeholder="0.00" step="0.01" inputmode="decimal" oninput="calcConvert()">
       </div>
-      <div class="result-box">
+      <div class="result-box" style="position:relative">
         <div class="result-label">Equivalente en pesos</div>
         <div class="result-amount" id="mxn-result">$0.00</div>
         <div class="result-sub" id="calc-sub">0 USD × 18.50 = 0.00 MXN</div>
+        <button id="add-to-list-btn" onclick="openQuickAddFromMain()" style="display:none;margin-top:14px;width:100%;background:rgba(0,229,160,.12);border:1px solid rgba(0,229,160,.3);border-radius:8px;color:var(--accent);font-size:13px;font-weight:600;font-family:var(--font);padding:10px;cursor:pointer;letter-spacing:.02em">+ Agregar a lista</button>
       </div>
     </div>
 
@@ -229,7 +230,7 @@ nav button svg{width:22px;height:22px;stroke-width:1.8}
     </div>
 
     <div class="settings-section">
-      <div class="section-label">Tipo de cambio guardado</div>
+      <div class="section-label">Tipo de cambio y tax</div>
       <div class="settings-card">
         <div class="settings-row">
           <div class="settings-row-icon green">
@@ -237,10 +238,21 @@ nav button svg{width:22px;height:22px;stroke-width:1.8}
           </div>
           <div class="settings-row-label">
             <p>TC fijo USD/MXN</p>
-            <span>Se usa como base en la calculadora</span>
+            <span>Base en la calculadora</span>
           </div>
           <input type="number" id="tc-setting" step="0.01" placeholder="18.50">
           <button class="save-btn" onclick="saveTc()">Guardar</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-icon" style="background:rgba(255,165,2,.1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="1.8" width="20" height="20"><path d="M9 14l6-6"/><circle cx="9.5" cy="9.5" r="0.5" fill="var(--warn)"/><circle cx="14.5" cy="14.5" r="0.5" fill="var(--warn)"/><path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0"/></svg>
+          </div>
+          <div class="settings-row-label">
+            <p>Tax (%)</p>
+            <span>Impuesto en EE.UU.</span>
+          </div>
+          <input type="number" id="tax-setting" step="0.1" placeholder="8.25" min="0" max="30">
+          <button class="save-btn" onclick="saveTax()">Guardar</button>
         </div>
       </div>
     </div>
@@ -359,6 +371,38 @@ nav button svg{width:22px;height:22px;stroke-width:1.8}
   </div>
 </div>
 
+<!-- MODAL quick add to list -->
+<div class="modal-overlay" id="modal-quickadd">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-qa-title">Agregar a lista</span>
+      <button class="icon-btn" onclick="closeModal('modal-quickadd')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--muted)">Monto</span>
+      <span style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent)" id="qa-preview">$0.00 MXN</span>
+    </div>
+    <div class="modal-field">
+      <label>Nombre del producto</label>
+      <input type="text" id="qa-name" placeholder="ej. Aceite de oliva">
+    </div>
+    <div class="modal-field">
+      <label>Cantidad</label>
+      <input type="number" id="qa-qty" value="1" min="1" step="1" inputmode="numeric">
+    </div>
+    <div class="modal-field">
+      <label>Agregar a lista</label>
+      <select id="qa-list"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-quickadd')">Cancelar</button>
+      <button class="btn-primary" onclick="saveQuickAdd()">Agregar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -366,6 +410,7 @@ nav button svg{width:22px;height:22px;stroke-width:1.8}
 // ── STATE ──
 let state = {
   tc: 18.50,
+  tax: 0,
   stores: ['Walmart','Costco','Sam\'s Club','H-E-B','Target'],
   lists: []
 };
@@ -376,8 +421,9 @@ let listTab = 'stores';
 
 function load(){
   const s = localStorage.getItem('shopconv');
-  if(s) state = JSON.parse(s);
+  if(s) state = Object.assign({tc:18.50,tax:0,stores:['Walmart','Costco',"Sam's Club",'H-E-B','Target'],lists:[]}, JSON.parse(s));
   document.getElementById('tc-setting').value = state.tc;
+  document.getElementById('tax-setting').value = state.tax||0;
   renderTcDisplay();
   renderStores();
   renderLists();
@@ -400,6 +446,7 @@ function getTc(){
   const ov = document.getElementById('tc-override').value;
   return ov && !isNaN(ov) ? parseFloat(ov) : state.tc;
 }
+function getTax(){ return (state.tax||0)/100; }
 function renderTcDisplay(){
   const ov = document.getElementById('tc-override').value;
   const using = ov && !isNaN(ov) ? parseFloat(ov) : state.tc;
@@ -412,9 +459,18 @@ function calcConvert(){
   renderTcDisplay();
   const usd = parseFloat(document.getElementById('usd-input').value)||0;
   const tc = getTc();
-  const mxn = usd * tc;
+  const tax = getTax();
+  const usdWithTax = usd * (1 + tax);
+  const mxn = usdWithTax * tc;
   document.getElementById('mxn-result').textContent = '$'+fmt(mxn);
-  document.getElementById('calc-sub').textContent = `${usd.toFixed(2)} USD × ${tc.toFixed(2)} = ${fmt(mxn)} MXN`;
+  const taxStr = tax>0 ? ` +${state.tax}% tax` : '';
+  document.getElementById('calc-sub').textContent = `${usd.toFixed(2)} USD${taxStr} × ${tc.toFixed(2)} = ${fmt(mxn)} MXN`;
+  document.getElementById('add-to-list-btn').style.display = usd>0 ? 'block' : 'none';
+}
+function openQuickAddFromMain(){
+  const usd = parseFloat(document.getElementById('usd-input').value)||0;
+  if(!usd) return;
+  openQuickAdd(usd);
 }
 function clearOverride(){
   document.getElementById('tc-override').value='';
@@ -425,11 +481,12 @@ function fmt(n){return n.toLocaleString('es-MX',{minimumFractionDigits:2,maximum
 function renderQuickGrid(){
   const amounts = [5,10,25,50,100,200,500,1000];
   const tc = getTc();
+  const tax = getTax();
   const g = document.getElementById('quick-grid');
   g.innerHTML = amounts.map(a=>`
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:12px;color:var(--muted);font-family:var(--mono)">$${a}</span>
-      <span style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--accent)">$${fmt(a*tc)}</span>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:6px">
+      <span style="font-size:12px;color:var(--muted);font-family:var(--mono);white-space:nowrap">$${a}</span>
+      <span style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--accent);white-space:nowrap">$${fmt(a*(1+tax)*tc)}</span>
     </div>`).join('');
 }
 document.getElementById('tc-override').addEventListener('input',()=>{calcConvert();renderQuickGrid();});
@@ -443,6 +500,14 @@ function saveTc(){
   renderTcDisplay();
   renderQuickGrid();
   toast('Tipo de cambio guardado','success');
+}
+function saveTax(){
+  const v = parseFloat(document.getElementById('tax-setting').value);
+  if(isNaN(v)||v<0||v>30){toast('Tax debe ser entre 0 y 30','error');return;}
+  state.tax = v;
+  save();
+  renderQuickGrid();
+  toast('Tax guardado','success');
 }
 function renderStores(){
   const w = document.getElementById('stores-wrap');
@@ -483,7 +548,8 @@ function renderLists(){
 }
 function listTotal(l){
   const tc = getTc();
-  return l.products.reduce((s,p)=>s+(p.price*p.qty*tc),0);
+  const tax = getTax();
+  return l.products.reduce((s,p)=>s+(p.price*(1+tax)*p.qty*tc),0);
 }
 function renderListCard(l){
   const total = listTotal(l);
@@ -512,12 +578,14 @@ function renderListCard(l){
 }
 function renderProductRow(listId, p){
   const tc = getTc();
-  const sub = p.price*p.qty*tc;
+  const tax = getTax();
+  const sub = p.price*(1+tax)*p.qty*tc;
+  const taxStr = tax>0 ? ` <span style="font-size:10px;color:var(--warn)">+${state.tax}%</span>` : '';
   return `
   <div class="product-row" id="pr-${p.id}">
     <div style="flex:1">
       <div class="prod-name">${p.name}</div>
-      <div class="prod-mxn">$${fmt(sub)} MXN</div>
+      <div class="prod-mxn">$${fmt(sub)} MXN${taxStr}</div>
     </div>
     <div style="text-align:right">
       <div class="prod-price">$${p.price.toFixed(2)} × ${p.qty}</div>
@@ -621,8 +689,10 @@ function openEditProduct(listId, prodId){
 function updateProdSubtotal(){
   const price = parseFloat(document.getElementById('mp-price').value)||0;
   const qty = parseInt(document.getElementById('mp-qty').value)||1;
-  const sub = price*qty*getTc();
-  document.getElementById('mp-subtotal').textContent='$'+fmt(sub);
+  const tax = getTax();
+  const sub = price*(1+tax)*qty*getTc();
+  const taxStr = tax>0 ? ` (inc. ${state.tax}% tax)` : '';
+  document.getElementById('mp-subtotal').textContent='$'+fmt(sub)+taxStr;
 }
 document.getElementById('mp-price').addEventListener('input',updateProdSubtotal);
 document.getElementById('mp-qty').addEventListener('input',updateProdSubtotal);
@@ -684,6 +754,35 @@ function confirmClear(){
     renderLists();
     toast('Datos eliminados');
   }
+}
+
+// ── QUICK ADD TO LIST ──
+let quickAddUsd = 0;
+function openQuickAdd(usd){
+  quickAddUsd = usd;
+  const tc = getTc();
+  const tax = getTax();
+  const mxn = usd*(1+tax)*tc;
+  document.getElementById('modal-qa-title').textContent=`Agregar $${usd} USD a lista`;
+  document.getElementById('qa-preview').textContent='$'+fmt(mxn)+' MXN'+(tax>0?` (+${state.tax}% tax)`:'');
+  document.getElementById('qa-name').value='';
+  document.getElementById('qa-qty').value='1';
+  const sel = document.getElementById('qa-list');
+  if(!state.lists.length){toast('Primero crea una lista','error');return;}
+  sel.innerHTML = state.lists.map(l=>`<option value="${l.id}">${l.name}${l.store?' — '+l.store:''}</option>`).join('');
+  openModal('modal-quickadd');
+}
+function saveQuickAdd(){
+  const name = document.getElementById('qa-name').value.trim();
+  const qty = parseInt(document.getElementById('qa-qty').value)||1;
+  const listId = document.getElementById('qa-list').value;
+  if(!name){toast('Ingresa el nombre del producto','error');return;}
+  const l = state.lists.find(x=>x.id===listId);
+  if(!l){toast('Lista no encontrada','error');return;}
+  l.products.push({id:uid(),name,price:quickAddUsd,qty});
+  save();
+  closeModal('modal-quickadd');
+  toast('Agregado a "'+l.name+'"','success');
 }
 
 load();
