@@ -25,8 +25,8 @@ nav button.active{color:var(--accent)}
 nav button svg{width:22px;height:22px;stroke-width:1.8}
 
 /* PAGES */
-.pages{flex:1;overflow:hidden;position:relative;padding-bottom:60px;padding-top:env(safe-area-inset-top)}
-.page{position:absolute;inset:0;padding-bottom:60px;overflow-y:auto;display:none;padding-top:env(safe-area-inset-top)}
+.pages{flex:1;overflow:hidden;position:relative;padding-bottom:60px;padding-top:env(safe-area-inset-top);touch-action:pan-y}
+.page{position:absolute;inset:0;padding-bottom:60px;overflow-y:auto;display:none;padding-top:env(safe-area-inset-top);touch-action:pan-y}
 .page.active{display:block}
 .page::-webkit-scrollbar{display:none}
 
