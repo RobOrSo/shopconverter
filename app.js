@@ -29,12 +29,35 @@ function save(){localStorage.setItem('shopconv',JSON.stringify(state));}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 
 // ── NAV ──
+const PAGES = ['calc','lists','settings'];
+let _transitioning = false;
+
 function goPage(p){
-  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  const cur = PAGES.find(pg=>document.getElementById('page-'+pg).classList.contains('active'));
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
-  document.getElementById('page-'+p).classList.add('active');
   document.getElementById('nav-'+p).classList.add('active');
   if(p==='lists') renderLists();
+  if(cur===p) return;
+
+  const curIdx = PAGES.indexOf(cur);
+  const newIdx = PAGES.indexOf(p);
+  const dir = newIdx > curIdx ? 'left' : 'right';
+
+  const outEl = document.getElementById('page-'+cur);
+  const inEl  = document.getElementById('page-'+p);
+  const outCls = dir==='left' ? 'slide-out-left'  : 'slide-out-right';
+  const inCls  = dir==='left' ? 'slide-in-right'  : 'slide-in-left';
+
+  _transitioning = true;
+  outEl.classList.add(outCls);
+  inEl.classList.add(inCls);
+
+  setTimeout(()=>{
+    outEl.classList.remove('active', outCls);
+    inEl.classList.remove(inCls);
+    inEl.classList.add('active');
+    _transitioning = false;
+  }, 280);
 }
 
 // ── CALCULATOR ──
@@ -431,5 +454,25 @@ async function fetchExchangeRate(){
     if(refreshIcon) refreshIcon.classList.remove('spinning');
   }
 }
+
+// ── SWIPE NAVIGATION ──
+let _swipeX = 0;
+let _swipeY = 0;
+
+document.querySelector('.pages').addEventListener('touchstart', e=>{
+  _swipeX = e.touches[0].clientX;
+  _swipeY = e.touches[0].clientY;
+}, {passive:true});
+
+document.querySelector('.pages').addEventListener('touchend', e=>{
+  if(_transitioning) return;
+  const dx = e.changedTouches[0].clientX - _swipeX;
+  const dy = e.changedTouches[0].clientY - _swipeY;
+  if(Math.abs(dx) < 50 || Math.abs(dx) <= Math.abs(dy)) return;
+  const cur = PAGES.find(p=>document.getElementById('page-'+p).classList.contains('active'));
+  const idx = PAGES.indexOf(cur);
+  if(dx < 0 && idx < PAGES.length-1) goPage(PAGES[idx+1]);
+  if(dx > 0 && idx > 0) goPage(PAGES[idx-1]);
+}, {passive:true});
 
 load();

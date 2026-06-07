@@ -155,3 +155,13 @@ nav button svg{width:22px;height:22px;stroke-width:1.8}
 
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinning{animation:spin .8s linear infinite}
+
+/* PAGE TRANSITIONS */
+@keyframes slideInFromRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes slideInFromLeft {from{transform:translateX(-100%)}to{transform:translateX(0)}}
+@keyframes slideOutToLeft  {from{transform:translateX(0)}to{transform:translateX(-100%)}}
+@keyframes slideOutToRight {from{transform:translateX(0)}to{transform:translateX(100%)}}
+.slide-in-right {display:block!important;animation:slideInFromRight .28s ease forwards}
+.slide-in-left  {display:block!important;animation:slideInFromLeft  .28s ease forwards}
+.slide-out-left {display:block!important;animation:slideOutToLeft   .28s ease forwards}
+.slide-out-right{display:block!important;animation:slideOutToRight  .28s ease forwards}
